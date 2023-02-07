@@ -1,0 +1,53 @@
+#import the necessary libraries
+from gps import *
+import time
+import requests
+from datetime import datetime
+import pytz, dateutil.parser
+
+TOKEN = '5752462236:AAHlALX-witMAtc4U8GAj2Pft06P2I1zanA'
+chat_id = '-654097079'
+
+running = True
+
+def getPositionData(gps):
+    nx = gpsd.next()
+    
+    if nx['class'] == 'TPV':
+        #extract gps info
+        latitude = getattr(nx,'lat', "Unknown")
+        longitude = getattr(nx,'lon', "Unknown")
+        speed=getattr(nx,'speed', "Unknown")
+
+        #change directory to wherever you want to txt file to be located
+        with open(r'/home/wenebula/Desktop/GPS/newoutput.txt', "a+") as file_object:
+            # Move read cursor to the start of file.
+            file_object.seek(0)
+            # If file is not empty then append '\n'
+            data = file_object.read(100)
+            if len(data) > 0 :
+                file_object.write("\n")
+            #stores the current date/time
+            dateTimeObj=datetime.now()
+            message = "Time: " + str(dateTimeObj) + " Position: lon = " + str(longitude) + ", lat = " + str(latitude) + "  Speed: " + str(speed*3.6) + " km/h" + " click here to track your motorcycle, input the longitude and latitude : https://www.maps.ie/coordinates.html" 
+            url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={chat_id}&text={message}"
+            time.sleep(60.0)
+            print(requests.get(url).json())
+            #Append gps info at the end of the file
+            
+            
+# Tell gpsd we are ready to receive messages
+gpsd = gps(mode=WATCH_ENABLE|WATCH_NEWSTYLE)
+
+
+try:
+    print ("Application started!")
+    while running:
+        #call function to extract and append GPS data
+        getPositionData(gpsd)
+        #delay running the program for 1 second
+        time.sleep(1)
+        
+#if the user presses ctrl+c, the program will stop running
+except (KeyboardInterrupt):
+    running = False
